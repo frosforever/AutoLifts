@@ -36,7 +36,7 @@ object Boilerplate {
   def genCore(dir: File) = gen(dir)(coreTemplates)
 
   val scalazTemplates = Seq(
-    GenScalazLiftMInstances, 
+    GenScalazLiftMInstances,
     GenScalazLiftAInstances
   )
 
@@ -46,8 +46,13 @@ object Boilerplate {
 
   def genAlgebird(dir: File) = gen(dir)(algebirdTemplates)
 
-  val header = "// auto-generated boilerplate" // TODO: put something meaningful here?
+  val catsTemplates = Seq(
+    GenCatsLiftMInstances
+  )
 
+  def genCats(dir: File) = gen(dir)(catsTemplates)
+
+  val header = "// auto-generated boilerplate" // TODO: put something meaningful here?
 
   /** Returns a seq of the generated files.  As a side-effect, it actually generates them... */
   def gen(dir: File)(templates: Seq[Template]) = for (t <- templates) yield {
@@ -193,6 +198,87 @@ object Boilerplate {
     }
   }
 
+  object GenCatsLiftMInstances extends Template {
+    override def filename(root: File): File = root / "autolift" / "cats" / "LiftersGen.scala"
+
+    /* Need to account for arity + 1 DFunction. */
+    override def range = 2 to (maxExportedArity - 1)
+
+    override def content(tv: TemplateVals): String = {
+      import tv._
+
+      val `Obj..N` = ((0 until arity) map (n => s"Obj$n")).mkString(", ")
+
+      val altSynTypes = (0 until arity) map (n => s"AA$n")
+
+      val `AA..N` = altSynTypes.mkString(", ")
+
+      val `AA >: A..N` = (altSynTypes zip synTypes).map(t => s"${t._1} >: ${t._2}").mkString(", ")
+
+      val synMTypes = synTypes.map(t => s"M[$t]")
+      val synMVals = synVals.map(t => s"m$t")
+
+      val `M[A]..M[N]` = synMTypes.mkString(", ")
+      val `ma: M[A]..mn: M[N]` = ((synMVals zip synMTypes) map { case (v, t) => s"$v: $t"}).mkString(", ")
+
+      def liftMApply(inner: String) = {
+        val (all, last) = (synVals zip synMVals zip synTypes).splitAt(synMVals.size - 1)
+
+        val innerBind = {
+          val ((sv, smv), st) = last.head
+          s"bind.map($smv) { $sv: $st => $inner }"
+        }
+
+        all.foldRight(innerBind) { case (((sv, smv), st), res) =>
+          s"bind.flatMap($smv) { $sv: $st => $res }"
+        }
+      }
+
+      val apply = liftMApply(s"f(${`a..n`})")
+      val lowPriorityBind = liftMApply(s"lift(${`a..n`}, f)")
+
+
+      block"""
+         |package autolift.cats
+         |
+         |import cats.FlatMap
+         |import export._
+         |
+        -import autolift.LiftM$arity
+        -
+        -trait CatsLiftM$arity[${`Obj..N`}, Fn] extends LiftM$arity[${`Obj..N`}, Fn]
+        -
+        -@exports(Subclass)
+        -object CatsLiftM$arity extends LowPriorityCatsLiftM$arity {
+        -  def apply[${`Obj..N`}, Fn](implicit lift: CatsLiftM$arity[${`Obj..N`}, Fn]): Aux[${`Obj..N`}, Fn, lift.Out] = lift
+        -
+        -  @export(Subclass)
+        -  implicit def base[M[_], ${`A..N`}, ${`AA >: A..N`}, C](implicit bind: FlatMap[M]): Aux[${`M[A]..M[N]`}, (${`AA..N`}) => C, M[C]] =
+        -    new CatsLiftM$arity[${`M[A]..M[N]`}, (${`AA..N`}) => C] {
+        -      type Out = M[C]
+        -
+        -      def apply(${`ma: M[A]..mn: M[N]`}, f: (${`AA..N`}) => C) = $apply
+        -    }
+        -}
+        -
+        -trait LowPriorityCatsLiftM$arity {
+        -  type Aux[${`Obj..N`}, Fn, Out0] = CatsLiftM$arity[${`Obj..N`}, Fn] {type Out = Out0}
+        -
+        -  @export(Subclass)
+        -  implicit def recur[M[_], ${`A..N`}, Fn](implicit bind: FlatMap[M], lift: LiftM$arity[${`A..N`}, Fn]): Aux[${`M[A]..M[N]`}, Fn, M[lift.Out]] =
+        -    new CatsLiftM$arity[${`M[A]..M[N]`}, Fn] {
+        -      type Out = M[lift.Out]
+        -
+        -      def apply(${`ma: M[A]..mn: M[N]`}, f: Fn) = $lowPriorityBind
+        -    }
+        -}
+        -
+        -trait LiftM${arity}Reexport{
+        -  implicit def mkLM${arity}[${`Obj..N`}, Fn](implicit lift: CatsLiftM${arity}[${`Obj..N`}, Fn]): CatsLiftM${arity}.Aux[${`Obj..N`}, Fn, lift.Out] = lift
+        -}
+      """
+    }
+  }
   object GenScalazLiftMInstances extends Template {
     override def filename(root: File): File = root / "autolift" / "scalaz" / "LiftersGen.scala"
 

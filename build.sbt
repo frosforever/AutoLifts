@@ -20,6 +20,17 @@ lazy val core = build("autolift-core", "autolift-core").settings(
   sonatypeProfileName := "wheaties"
 )
 
+lazy val autoCats = build("autolift-cats", "autolift-cats").settings(
+  libraryDependencies ++= Seq(
+    "org.spire-math" %% "cats" % "0.3.0",
+    compilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full),
+    "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+  ),
+//  sourceGenerators in Compile <+= (sourceManaged in Compile).map(Boilerplate.genAlgebird),
+  sonatypeProfileName := "wheaties"
+)
+  .dependsOn(core)
+
 lazy val autoAlge = build("autolift-algebird", "autolift-algebird").settings(
   libraryDependencies ++= Seq(
     "com.twitter" %% "algebird-core" % "0.11.0",

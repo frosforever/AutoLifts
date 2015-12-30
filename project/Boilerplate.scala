@@ -47,7 +47,8 @@ object Boilerplate {
   def genAlgebird(dir: File) = gen(dir)(algebirdTemplates)
 
   val catsTemplates = Seq(
-    GenCatsLiftMInstances
+    GenCatsLiftMInstances,
+    GenCatsLiftAInstances
   )
 
   def genCats(dir: File) = gen(dir)(catsTemplates)
@@ -434,6 +435,88 @@ object Boilerplate {
         -
         -      def apply(${`ma: M[A]..mn: M[N]`}, f: Fn) = $lowPriorityBind
         -    }
+        -}
+      """
+    }
+  }
+
+  object GenCatsLiftAInstances extends Template {
+    override def filename(root: File): File = root / "autolift" / "cats" / "LiftAGen.scala"
+
+    /* Need to account for arity + 1 DFunction. */
+    override def range = 2 to (maxExportedArity - 1)
+
+    override def content(tv: TemplateVals): String = {
+      import tv._
+
+      val `Obj..N` = ((0 until arity) map (n => s"Obj$n")).mkString(", ")
+
+      val altSynTypes = (0 until arity) map (n => s"AA$n")
+
+      val `AA..N` = altSynTypes.mkString(", ")
+
+      val `AA >: A..N` = (altSynTypes zip synTypes).map(t => s"${t._1} >: ${t._2}").mkString(", ")
+
+      val synMTypes = synTypes.map(t => s"M[$t]")
+      val synMVals = synVals.map(t => s"m$t")
+
+      val `M[A]..M[N]` = synMTypes.mkString(", ")
+      val `ma: M[A]..mn: M[N]` = ((synMVals zip synMTypes) map { case (v, t) => s"$v: $t"}).mkString(", ")
+
+      def liftAApply(inner: String) = {
+        val (init, last) = (synMVals.init, synMVals.last)
+
+        val innerMap = s"ap.map($last) { $inner }"
+
+        init.foldRight(innerMap) { case (smv, res) =>
+          s"ap.ap($smv) { $res }"
+        }
+      }
+
+      def fargs(inner: String) = (synVals zip synTypes).foldLeft(inner){ case (res, (sv, smv)) =>
+        s"$sv: $smv => $res"
+      }
+
+      val apply = liftAApply(fargs(s"f(${`a..n`})"))
+      val lowPriorityAp = liftAApply(fargs(s"lift(${`a..n`}, f)"))
+
+      block"""
+         |package autolift.cats
+         |
+         |import cats.Apply
+         |import export._
+         |
+        -import autolift.LiftA$arity
+        -
+        -trait CatsLiftA$arity[${`Obj..N`}, Fn] extends LiftA$arity[${`Obj..N`}, Fn]
+        -
+        -@exports(Subclass)
+        -object CatsLiftA$arity extends LowPriorityCatsLiftA$arity {
+        -  def apply[${`Obj..N`}, Fn](implicit lift: CatsLiftA$arity[${`Obj..N`}, Fn]): Aux[${`Obj..N`}, Fn, lift.Out] = lift
+        -
+        -  @export(Subclass)
+        -  implicit def base[M[_], ${`A..N`}, ${`AA >: A..N`}, C](implicit ap: Apply[M]): Aux[${`M[A]..M[N]`}, (${`AA..N`}) => C, M[C]] =
+        -    new CatsLiftA$arity[${`M[A]..M[N]`}, (${`AA..N`}) => C] {
+        -      type Out = M[C]
+        -
+        -      def apply(${`ma: M[A]..mn: M[N]`}, f: (${`AA..N`}) => C) = $apply
+        -    }
+        -}
+        -
+        -trait LowPriorityCatsLiftA$arity {
+        -  type Aux[${`Obj..N`}, Fn, Out0] = CatsLiftA$arity[${`Obj..N`}, Fn] {type Out = Out0}
+        -
+        -  @export(Subclass)
+        -  implicit def recur[M[_], ${`A..N`}, Fn](implicit ap: Apply[M], lift: LiftA$arity[${`A..N`}, Fn]): Aux[${`M[A]..M[N]`}, Fn, M[lift.Out]] =
+        -    new CatsLiftA$arity[${`M[A]..M[N]`}, Fn] {
+        -      type Out = M[lift.Out]
+        -
+        -      def apply(${`ma: M[A]..mn: M[N]`}, f: Fn) = $lowPriorityAp
+        -    }
+        -}
+        -
+        -trait LiftA${arity}Reexport{
+        -  implicit def mkLA${arity}[${`Obj..N`}, Fn](implicit lift: CatsLiftA${arity}[${`Obj..N`}, Fn]): CatsLiftA${arity}.Aux[${`Obj..N`}, Fn, lift.Out] = lift
         -}
       """
     }

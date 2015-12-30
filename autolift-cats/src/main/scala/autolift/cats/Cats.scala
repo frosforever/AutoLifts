@@ -4,6 +4,7 @@ import export._
 import autolift.cats._
 
 @reexports[CatsLiftMap, CatsLiftAp, CatsLiftFlatMap, CatsLiftFlatten, /*CatsLiftFilter, LiftJoin, LiftJoinWith, */
+  CatsLiftA2, CatsLiftA3, CatsLiftA4, CatsLiftA5,
   CatsLiftM2, CatsLiftM3, CatsLiftM4, CatsLiftM5]
 object Cats extends Syntax with Context{
   implicit def mkF[Obj, Fn](implicit lift: CatsLiftMap[Obj, Fn]): CatsLiftMap.Aux[Obj, Fn, lift.Out] = lift

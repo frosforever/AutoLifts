@@ -3,7 +3,7 @@ package autolift
 import export._
 import autolift.cats._
 
-@reexports[CatsLiftMap, CatsLiftAp, CatsLiftFlatMap, CatsLiftFlatten, /*CatsLiftFilter, LiftJoin, LiftJoinWith, */
+@reexports[CatsLiftMap, CatsLiftAp, CatsLiftFlatMap, CatsLiftFlatten, CatsLiftFilter,/* LiftJoin, LiftJoinWith, */
   CatsLiftA2, CatsLiftA3, CatsLiftA4, CatsLiftA5,
   CatsLiftM2, CatsLiftM3, CatsLiftM4, CatsLiftM5]
 object Cats extends Syntax with Context{

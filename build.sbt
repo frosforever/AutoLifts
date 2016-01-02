@@ -7,7 +7,7 @@ lazy val root = (project in file(".")).settings(
   scalaVersion := AutoLift.ScalaVersion,
   publishArtifact := false
 )
-.aggregate(core, autoAlge, autoScalaz, docs)
+.aggregate(core, autoAlge, autoScalaz, autoCats, docs)
 
 lazy val core = build("autolift-core", "autolift-core").settings(
   libraryDependencies ++= Seq(

@@ -9,6 +9,7 @@ trait Context //extends LiftJoinWithContext
   with LiftMapContext
   with LiftFlatMapContext
   with LiftFilterContext
+  with LiftExistsContext
   //with LiftA2Context
   //with LiftA3Context
   //with LiftA4Context

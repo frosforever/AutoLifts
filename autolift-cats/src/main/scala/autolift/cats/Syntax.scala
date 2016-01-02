@@ -7,5 +7,6 @@ with LiftApSyntax
 with LiftFlatMapSyntax
 with LiftFilterSyntax
 with LiftFlattenSyntax
+with LiftExistsSyntax
 //with LiftJoinSyntax
 //with LiftJoinWithSyntax

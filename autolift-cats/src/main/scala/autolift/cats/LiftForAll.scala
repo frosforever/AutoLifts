@@ -33,12 +33,10 @@ trait LowPriorityCatsLiftForAll{
 
 trait LiftForAllSyntax {
 	implicit class LiftAllOps[F[_], A](fa: F[A]){
-		def liftAll[B](f: B => Boolean)(implicit lift: LiftForAll[F[A], B => Boolean]): lift.Out = lift(fa, f)
+		def liftForall[B](f: B => Boolean)(implicit lift: LiftForAll[F[A], B => Boolean]): lift.Out = lift(fa, f)
 	}
 }
 
 trait LiftForAllContext {
-	def liftAll[A](f: A => Boolean): LiftedAll[A] = new LiftedForAll(f)
-
-	type LiftedAll[A] = LiftedForAll[A]
+	def liftForall[A](f: A => Boolean): LiftedForAll[A] = new LiftedForAll(f)
 }

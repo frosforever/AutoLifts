@@ -34,15 +34,15 @@ trait LowPriorityCatsLiftFoldRight{
 
 trait LiftFoldRightSyntax{
 	implicit class LiftFoldRightOps[F[_], A](fa: F[A]){
-		def liftFoldRight[B, Z](z: Z)(f: (B, => Z) => Z)(implicit lift: LiftFoldRight[F[A], (B, => Z) => Z, Z]): lift.Out = 
+		def liftFoldRight[B, Z](z: Eval[Z])(f: (B, Eval[Z]) => Eval[Z])(implicit lift: LiftFoldRight[F[A], (B, Eval[Z]) => Eval[Z], Eval[Z]]): lift.Out =
 			lift(fa, f, z)
 	}
 }
 
-final class LiftedFoldRight[B, Z](z: Z, f: (B, => Z) => Z){
-	def apply[That](that: That)(implicit lift: LiftFoldRight[That, (B, => Z) => Z, Z]): lift.Out = lift(that, f, z)
+final class LiftedFoldRight[B, Z](z: Eval[Z], f: (B, Eval[Z]) => Eval[Z]) {
+	def apply[That](that: That)(implicit lift: LiftFoldRight[That, (B, Eval[Z]) => Eval[Z], Eval[Z]]): lift.Out = lift(that, f, z)
 }
 
-trait LiftFoldRightContext{
-	def liftFoldRight[B, Z](z: Z)(f: (B, => Z) => Z) = new LiftedFoldRight(z, f)
+trait LiftFoldRightContext {
+	def liftFoldRight[B, Z](z: Eval[Z])(f: (B, Eval[Z]) => Eval[Z]) = new LiftedFoldRight(z, f)
 }

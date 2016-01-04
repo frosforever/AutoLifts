@@ -1,5 +1,10 @@
 package autolift.cats
 
+import cats._
+import cats.implicits._
+import autolift.Cats._
+import autolift._
+
 class LiftFoldAtTest extends BaseSpec{
 	"liftFoldAt on a List" should "work" in{
 		val in = List(1, 2, 3)
